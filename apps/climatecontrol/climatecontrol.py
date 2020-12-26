@@ -125,64 +125,70 @@ class Manage_Climate(hass.Hass):
             
         """
         
+        self.log("entity change: " + entity + " old: " + old + " new: " + new)
+
+
         # if the house goes to everyone away - turn everything off now
         if entity == self.AWAYN:
             if new == "on":
                 for ac in self.AIRCON:
-                    self.call_service("climate.turn_off", entity_id=ac)
+                    self.call_service("climate/turn_off", entity_id=ac)
                 for fan in self.FAN:
-                    self.call_service("fan.turn_off", entity_id=fan)
+                    self.call_service("fan/turn_off", entity_id=fan)
         # when the internal temperature changes
         elif entity == self.CINTEMPN:
             if new > self.EXTHIGH:
                 # never let it get this hot ever # ensure the house never gets above the set user external high
                 for ac in self.AIRCON:
-                    self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="cool")
-                    self.call_service("climate.set_fan_mode", entity_id=ac, fan_mode="High")
-                    self.call_service("climate.set_temperature", entity_id=ac, temperature=self.EXTHIGH)
-                    self.call_service("climate.turn_on", entity_id=ac)
+                    self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="cool")
+                    #self.set_state(ac, state="cool", replace=True)
+                    self.call_service("climate/set_fan_mode", entity_id=ac, fan_mode="High")
+                    self.call_service("climate/set_temperature", entity_id=ac, temperature=self.EXTHIGH)
+                    self.call_service("climate/turn_on", entity_id=ac)
                 for fan in self.FAN:
-                    self.call_service("fan.turn_on", entity_id=fan)
+                    self.call_service("fan/turn_on", entity_id=fan)
             elif new < self.EXTLOW:
                 #never let it get this cold ever
                 for ac in self.AIRCON:
-                    self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="heat")
-                    self.call_service("climate.set_fan_mode", entity_id=ac, fan_mode="High")
-                    self.call_service("climate.set_temperature", entity_id=ac, temperature=self.EXTLOW)
-                    self.call_service("climate.turn_on", entity_id=ac)
+                    self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="heat")
+                    #self.set_state(ac, state="heat", replace=True)
+                    self.call_service("climate/set_fan_mode", entity_id=ac, fan_mode="High")
+                    self.call_service("climate/set_temperature", entity_id=ac, temperature=self.EXTLOW)
+                    self.call_service("climate/turn_on", entity_id=ac)
                 for fan in self.FAN:
-                    self.call_service("fan.turn_off", entity_id=fan)
+                    self.call_service("fan/turn_off", entity_id=fan)
             elif new > self.OPTLOW and new < self.INTHIGH:
                 # this is in the goldilocks range, mostly aim to control
                 if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
                     # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
                     for ac in self.AIRCON:
-                        self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="fan_only")
-                        self.call_service("climate.turn_on", entity_id=ac)
+                        self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="fan_only")
+                        #self.set_state(ac, state="fan_only", replace=True)
+                        self.call_service("climate/turn_on", entity_id=ac)
                     for fan in self.FAN:
-                        self.call_service("fan.turn_on", entity_id=fan)
+                        self.call_service("fan/turn_on", entity_id=fan)
                 else:
                     # if the outside temp is lower than optimal but the forecast is higher (but we are in the goldilocks range)
                     if self.get_state(self.FHIGHN) > self.OPTHIGH:
                         for ac in self.AIRCON:
-                            self.call_service("climate.turn_off", entity_id=ac)
+                            self.call_service("climate/turn_off", entity_id=ac)
                         for fan in self.FAN:
-                            self.call_service("fan.turn_on", entity_id=fan)
+                            self.call_service("fan/turn_on", entity_id=fan)
                     else:
                         # everything is optimal - everything off
                         for ac in self.AIRCON:
-                            self.call_service("climate.turn_off", entity_id=ac)
+                            self.call_service("climate/turn_off", entity_id=ac)
                         for fan in self.FAN:
-                            self.call_service("fan.turn_off", entity_id=fan)
+                            self.call_service("fan/turn_off", entity_id=fan)
             else:
                 # this is in the outer ranges, need to check more complexity
                 # is the house empty
                 if self.get_state(self.AWAYN) == 'on': 
                     # then in this range just turn off
                     for ac in self.AIRCON:
-                        self.call_service("climate.turn_off", entity_id=ac)
+                        self.call_service("climate/turn_off", entity_id=ac)
                     for fan in self.FAN:
-                        self.call_service("fan.turn_off", entity_id=fan)
+                        self.call_service("fan/turn_off", entity_id=fan)
                 else:
                     # people are home, so lets work out how to bring it back to optimal
                     if self.get_state(self.FHIGHN) >= self.INTHIGH:
@@ -193,53 +199,57 @@ class Manage_Climate(hass.Hass):
                             if self.get_state(self.CINTEMPN) > self.OPTHIGH:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="cool")
-                                    self.call_service("climate.set_fan_mode", entity_id=ac, fan_mode="Low")
-                                    self.call_service("climate.set_temperature", entity_id=ac, temperature=self.OPTHIGH)
-                                    self.call_service("climate.turn_on", entity_id=ac)
+                                    self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="cool")
+                                    #self.set_state(ac, state="cool", replace=True)
+                                    self.call_service("climate/set_fan_mode", entity_id=ac, fan_mode="Low")
+                                    self.call_service("climate/set_temperature", entity_id=ac, temperature=self.OPTHIGH)
+                                    self.call_service("climate/turn_on", entity_id=ac)
                                 for fan in self.FAN:
-                                    self.call_service("fan.turn_on", entity_id=fan)
+                                    self.call_service("fan/turn_on", entity_id=fan)
                             else:
                                 # internal temp is not high but
                                 # external temp is high
                                 if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
                                     for ac in self.AIRCON:
-                                        self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="fan_only")
-                                        self.call_service("climate.turn_on", entity_id=ac)
+                                        self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="fan_only")
+                                        #self.set_state(ac, state="fan_only", replace=True)
+                                        self.call_service("climate/turn_on", entity_id=ac)
                                     for fan in self.FAN:
-                                        self.call_service("fan.turn_on", entity_id=fan)
+                                        self.call_service("fan/turn_on", entity_id=fan)
                                 else:
                                     # external temp is ok, let it naturally cool
                                     for ac in self.AIRCON:
-                                        self.call_service("climate.turn_off", entity_id=ac)
+                                        self.call_service("climate/turn_off", entity_id=ac)
                                     for fan in self.FAN:
-                                        self.call_service("fan.turn_off", entity_id=fan)
+                                        self.call_service("fan/turn_off", entity_id=fan)
                         else:
                             # solar is not available - some cooling
                             if self.get_state(self.CINTEMPN) > self.INTHIGH:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="cool")
-                                    self.call_service("climate.set_fan_mode", entity_id=ac, fan_mode="Low")
-                                    self.call_service("climate.set_temperature", entity_id=ac, temperature=self.INTHIGH)
-                                    self.call_service("climate.turn_on", entity_id=ac)
+                                    self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="cool")
+                                    #self.set_state(ac, state="cool", replace=True)
+                                    self.call_service("climate/set_fan_mode", entity_id=ac, fan_mode="Low")
+                                    self.call_service("climate/set_temperature", entity_id=ac, temperature=self.INTHIGH)
+                                    self.call_service("climate/turn_on", entity_id=ac)
                                 for fan in self.FAN:
-                                    self.call_service("fan.turn_on", entity_id=fan)
+                                    self.call_service("fan/turn_on", entity_id=fan)
                             else:
                                 # internal temp is not high but
                                 # external temp is high
                                 if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
                                     for ac in self.AIRCON:
-                                        self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="fan_only")
-                                        self.call_service("climate.turn_on", entity_id=ac)
+                                        self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="fan_only")
+                                        #self.set_state(ac, state="fan_only", replace=True)
+                                        self.call_service("climate/turn_on", entity_id=ac)
                                     for fan in self.FAN:
-                                        self.call_service("fan.turn_on", entity_id=fan)
+                                        self.call_service("fan/turn_on", entity_id=fan)
                                 else:
                                     # external temp is ok, let it naturally cool
                                     for ac in self.AIRCON:
-                                        self.call_service("climate.turn_off", entity_id=ac)
+                                        self.call_service("climate/turn_off", entity_id=ac)
                                     for fan in self.FAN:
-                                        self.call_service("fan.turn_off", entity_id=fan)
+                                        self.call_service("fan/turn_off", entity_id=fan)
 
                     elif self.get_state(self.FHIGHN) <= self.OPTLOW:
                         # if the forecast is for low today, then we are heating
@@ -249,36 +259,38 @@ class Manage_Climate(hass.Hass):
                             if self.get_state(self.CINTEMPN) < self.OPTLOW:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="heat")
-                                    self.call_service("climate.set_fan_mode", entity_id=ac, fan_mode="Low")
-                                    self.call_service("climate.set_temperature", entity_id=ac, temperature=self.OPTHIGH)
-                                    self.call_service("climate.turn_on", entity_id=ac)
+                                    self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="heat")
+                                    #self.set_state(ac, state="heat", replace=True)
+                                    self.call_service("climate/set_fan_mode", entity_id=ac, fan_mode="Low")
+                                    self.call_service("climate/set_temperature", entity_id=ac, temperature=self.OPTHIGH)
+                                    self.call_service("climate/turn_on", entity_id=ac)
                                 for fan in self.FAN:
-                                    self.call_service("fan.turn_off", entity_id=fan)
+                                    self.call_service("fan/turn_off", entity_id=fan)
                             else:
                                 # internal temp is fine
                                 for ac in self.AIRCON:
-                                    self.call_service("climate.turn_off", entity_id=ac)
+                                    self.call_service("climate/turn_off", entity_id=ac)
                                 for fan in self.FAN:
-                                    self.call_service("fan.turn_off", entity_id=fan)
+                                    self.call_service("fan/turn_off", entity_id=fan)
                         else:
                             # solar is not available - some cooling
-                            if self.get_state(self.CINTEMPN) > self.INTLOW:
+                            if self.get_state(self.CINTEMPN) < self.INTLOW:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.call_service("climate.set_hvac_mode", entity_id=ac, hvac_mode="heat")
-                                    self.call_service("climate.set_fan_mode", entity_id=ac, fan_mode="Low")
-                                    self.call_service("climate.set_temperature", entity_id=ac, temperature=self.INTLOW)
-                                    self.call_service("climate.turn_on", entity_id=ac)
+                                    self.call_service("climate/set_hvac_mode", entity_id=ac, hvac_mode="heat")
+                                    #self.set_state(ac, state="heat", replace=True)
+                                    self.call_service("climate/set_fan_mode", entity_id=ac, fan_mode="Low")
+                                    self.call_service("climate/set_temperature", entity_id=ac, temperature=self.INTLOW)
+                                    self.call_service("climate/turn_on", entity_id=ac)
                                 for fan in self.FAN:
-                                    self.call_service("fan.turn_off", entity_id=fan)
+                                    self.call_service("fan/turn_off", entity_id=fan)
                             else:
                                 # internal temp is ok
                                 # external temp is ok, let it naturally cool
                                 for ac in self.AIRCON:
-                                    self.call_service("climate.turn_off", entity_id=ac)
+                                    self.call_service("climate/turn_off", entity_id=ac)
                                 for fan in self.FAN:
-                                    self.call_service("fan.turn_off", entity_id=fan)
+                                    self.call_service("fan/turn_off", entity_id=fan)
                     else:
                         # if the forecast is in the middle then we do nothing? and let the house cool or heat naturally?
                         pass
@@ -308,7 +320,6 @@ class Manage_Climate(hass.Hass):
             self.log("Change Maximum Low to " + new)
         else:
             self.log("Unknown User Value Change Requested")
-
 
 
     def load(self):
