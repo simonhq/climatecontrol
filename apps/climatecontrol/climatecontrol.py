@@ -211,7 +211,7 @@ class Manage_Climate(hass.Hass):
                             if self.get_state(self.CINTEMPN) > self.INTHIGH:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="cool", temp=self.INTHIGH, spd="Low")
+                                    self.ton(ac, "AC", mode="cool", temp=self.INTHIGH, spd="Mid")
                                 for fan in self.FAN:
                                     self.ton(fan, "FAN")
                             else:
@@ -237,7 +237,7 @@ class Manage_Climate(hass.Hass):
                             if self.get_state(self.CINTEMPN) < self.OPTLOW:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="heat", temp=self.OPTHIGH, spd="Low")
+                                    self.ton(ac, "AC", mode="heat", temp=self.OPTLOW, spd="Low")
                                 for fan in self.FAN:
                                     self.toff(fan, "FAN")
                             else:
@@ -251,7 +251,7 @@ class Manage_Climate(hass.Hass):
                             if self.get_state(self.CINTEMPN) < self.INTLOW:
                                 # internal temp is higher than optimal
                                 for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="heat", temp=self.INTLOW, spd="Low")
+                                    self.ton(ac, "AC", mode="heat", temp=self.INTLOW, spd="Mid")
                                 for fan in self.FAN:
                                     self.toff(fan, "FAN")
                             else:
@@ -324,9 +324,29 @@ class Manage_Climate(hass.Hass):
             self.log("already off - not turning off " + unit)
 
     
-    def ton(self, unit, aftype, mode="fan_only", temp="20", spd="Low"):
+    def ton(self, unit, aftype, mode="fan_only", temp="0.0", spd="Low"):
         """ this will turn on an ac or a fan if it isn't already on
         """
+
+        #if already on, this will set from fan to cool/heat and from cool/heat back to fan
+        if float(temp) > 0.0:
+            #switch from fan_only to aircon
+            if self.get_state(unit) == 'fan_only' and mode != 'fan_only':
+                self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
+                self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+                self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
+                self.lightwarn()
+                self.log(unit + " on to " + mode + " at " + temp)
+            #switch from aircon to fan_only 
+            elif mode == 'fan_only' and self.get_state(unit) != 'fan_only':
+                self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
+                self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+                self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
+                self.log(unit + " on to " + mode)
+            #switch temperatures when using aircon
+            elif self.get_state(unit) != 'fan_only' and self.get_state(unit, attribute='temperature') != temp:
+                self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
+                self.log(unit + " on to " + mode + " at " + temp)
 
         if self.get_state(unit) == 'off':
             if aftype == "AC":
@@ -343,4 +363,11 @@ class Manage_Climate(hass.Hass):
         else:
             self.log("already on - not turning on " + unit)
 
-        # NEED to expand to cover changing the temperature if already on
+        
+    def lightwarn(self):
+        """ this will flash the front hall light if the doors are open when the aircon kicks in
+        """
+
+        if self.get_state("binary_sensor.fdoor_open") == 'on' or self.get_state("binary_sensor.bdoor_open") == 'on':
+            self.call_service("light/turn_on", entity_id="light.front_hall", brightness=100)
+            
