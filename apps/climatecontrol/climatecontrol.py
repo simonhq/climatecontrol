@@ -30,6 +30,7 @@
 #   extlow: "input_number.cc_extlow"
 #   aircon: "climate.rushbrook_aircon" # climate.lounge # if we want to use it
 #   fan: "fan.master_fan,fan.staci_s_fan,fan.delia_s_fan,fan.lounge"
+#   manual_override: "input_boolean.cc_ac_manual"
 #
 ############################################################
 
@@ -49,6 +50,7 @@ class Manage_Climate(hass.Hass):
     CINTEMPN = "" # current internal temperature
     SOLARN = "" # Solar status 
     AWAYN = "" # Everyone away?
+    MANUAL = "" # Manual override (ignore temp code)
 
     # these are the names of the sensors
     EXTHIGHN = "" # highest temp we are happy the house to get to ever
@@ -83,6 +85,7 @@ class Manage_Climate(hass.Hass):
         self.CINTEMPN = self.args["cinttemp"]
         self.SOLARN = self.args["solarstatus"]
         self.AWAYN = self.args["presenceaway"]
+        self.MANUAL = self.args["manual_override"]
         
         self.EXTHIGHN = self.args["exthigh"]
         self.INTHIGHN = self.args["inthigh"]
@@ -107,6 +110,8 @@ class Manage_Climate(hass.Hass):
         # if the internal temperature or if everyone leaves, adjust the climate control
         self.listen_state(self.main, self.CINTEMPN)
         self.listen_state(self.main, self.AWAYN)
+        # if set to manual, then ignore everything
+        self.listen_state(self.ignorer, self.MANUAL)
 
         # if the user temperature settings change update them on the fly
         self.listen_state(self.setvals, self.EXTHIGHN)
@@ -119,153 +124,167 @@ class Manage_Climate(hass.Hass):
         # set the orignal values
         self.load()
 
+
+    def ignorer(self, entity, attribute, old, new, kwargs):
+        """ this watches the ignore flag, to show we are in 'manual mode'
+            
+        """
+        if new == 'on':
+            self.log("Manual Mode: ignoring temperature controls")
+        else:
+            self.log("Controlled Mode: managing temperature controls")
+
+
+
     # run the app
     def main(self, entity, attribute, old, new, kwargs):
         """ this does all the checking and controls the climate
             
         """
         
-        self.log("entity change: " + entity + " old: " + old + " new: " + new)
-        logger = ""
+        if self.get_state(self.MANUAL) != 'on':
 
-        # if the house goes to everyone away - turn everything off now
-        if entity == self.AWAYN:
-            if new == "on":
-                for ac in self.AIRCON:
-                    self.toff(ac, "AC")
-                for fan in self.FAN:
-                    self.toff(fan, "FAN")
-        # when the internal temperature changes
-        elif entity == self.CINTEMPN:
-            if new > self.EXTHIGH:
-                # never let it get this hot ever # ensure the house never gets above the set user external high
-                for ac in self.AIRCON:
-                    self.ton(ac, "AC", mode="cool", temp=self.EXTHIGH, spd="High")
-                for fan in self.FAN:
-                    self.ton(fan, "FAN")
-            elif new < self.EXTLOW:
-                #never let it get this cold ever
-                for ac in self.AIRCON:
-                    self.ton(ac, "AC", mode="heat", temp=self.EXTLOW, spd="High")
-                for fan in self.FAN:
-                    self.toff(fan, "FAN")
-            elif new > self.OPTLOW and new < self.INTHIGH:
-                # this is in the goldilocks range, mostly aim to control
-                if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
-                    # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
-                    for ac in self.AIRCON:
-                        self.ton(ac, "AC", mode="fan_only")
-                    for fan in self.FAN:
-                        self.ton(fan, "FAN")
-                else:
-                    # if the outside temp is lower than optimal but the forecast is higher (but we are in the goldilocks range)
-                    if self.get_state(self.FHIGHN) > self.OPTHIGH:
-                        for ac in self.AIRCON:
-                            self.toff(ac, "AC")
-                        for fan in self.FAN:
-                            self.ton(fan, "FAN")
-                    else:
-                        # everything is optimal - everything off
-                        for ac in self.AIRCON:
-                            self.toff(ac, "AC")
-                        for fan in self.FAN:
-                            self.toff(fan, "FAN")
-            else:
-                # this is in the outer ranges, need to check more complexity
-                # is the house empty
-                if self.get_state(self.AWAYN) == 'on': 
-                    # then in this range just turn off
+            self.log("entity change: " + entity + " old: " + old + " new: " + new)
+            logger = ""
+
+            # if the house goes to everyone away - turn everything off now
+            if entity == self.AWAYN:
+                if new == "on":
                     for ac in self.AIRCON:
                         self.toff(ac, "AC")
                     for fan in self.FAN:
                         self.toff(fan, "FAN")
+            # when the internal temperature changes
+            elif entity == self.CINTEMPN:
+                if new > self.EXTHIGH:
+                    # never let it get this hot ever # ensure the house never gets above the set user external high
+                    for ac in self.AIRCON:
+                        self.ton(ac, "AC", mode="cool", temp=self.EXTHIGH, spd="High")
+                    for fan in self.FAN:
+                        self.ton(fan, "FAN")
+                elif new < self.EXTLOW:
+                    #never let it get this cold ever
+                    for ac in self.AIRCON:
+                        self.ton(ac, "AC", mode="heat", temp=self.EXTLOW, spd="High")
+                    for fan in self.FAN:
+                        self.toff(fan, "FAN")
+                elif new > self.OPTLOW and new < self.INTHIGH:
+                    # this is in the goldilocks range, mostly aim to control
+                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                        # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
+                        for ac in self.AIRCON:
+                            self.ton(ac, "AC", mode="fan_only")
+                        for fan in self.FAN:
+                            self.ton(fan, "FAN")
+                    else:
+                        # if the outside temp is lower than optimal but the forecast is higher (but we are in the goldilocks range)
+                        if self.get_state(self.FHIGHN) > self.OPTHIGH:
+                            for ac in self.AIRCON:
+                                self.toff(ac, "AC")
+                            for fan in self.FAN:
+                                self.ton(fan, "FAN")
+                        else:
+                            # everything is optimal - everything off
+                            for ac in self.AIRCON:
+                                self.toff(ac, "AC")
+                            for fan in self.FAN:
+                                self.toff(fan, "FAN")
                 else:
-                    # people are home, so lets work out how to bring it back to optimal
-                    if self.get_state(self.FHIGHN) >= self.INTHIGH:
-                        # if the forecast is for high today, then we are cooling
-                        # see if we have solar
-                        if self.get_state(self.SOLARN) == 'on':
-                            # solar is available - cool further
-                            if self.get_state(self.CINTEMPN) > self.OPTHIGH:
-                                # internal temp is higher than optimal
-                                for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="cool", temp=self.OPTHIGH, spd="Low")
-                                for fan in self.FAN:
-                                    self.ton(fan, "FAN")
-                            else:
-                                # internal temp is not high but
-                                # external temp is high
-                                if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                    # this is in the outer ranges, need to check more complexity
+                    # is the house empty
+                    if self.get_state(self.AWAYN) == 'on': 
+                        # then in this range just turn off
+                        for ac in self.AIRCON:
+                            self.toff(ac, "AC")
+                        for fan in self.FAN:
+                            self.toff(fan, "FAN")
+                    else:
+                        # people are home, so lets work out how to bring it back to optimal
+                        if self.get_state(self.FHIGHN) >= self.INTHIGH:
+                            # if the forecast is for high today, then we are cooling
+                            # see if we have solar
+                            if self.get_state(self.SOLARN) == 'on':
+                                # solar is available - cool further
+                                if self.get_state(self.CINTEMPN) > self.OPTHIGH:
+                                    # internal temp is higher than optimal
                                     for ac in self.AIRCON:
-                                        self.ton(ac, "AC", mode="fan_only")
+                                        self.ton(ac, "AC", mode="cool", temp=self.OPTHIGH, spd="Low")
                                     for fan in self.FAN:
                                         self.ton(fan, "FAN")
                                 else:
+                                    # internal temp is not high but
+                                    # external temp is high
+                                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                                        for ac in self.AIRCON:
+                                            self.ton(ac, "AC", mode="fan_only")
+                                        for fan in self.FAN:
+                                            self.ton(fan, "FAN")
+                                    else:
+                                        # external temp is ok, let it naturally cool
+                                        for ac in self.AIRCON:
+                                            self.toff(ac, "AC")
+                                        for fan in self.FAN:
+                                            self.toff(fan, "FAN")
+                            else:
+                                # solar is not available - some cooling
+                                if self.get_state(self.CINTEMPN) > self.INTHIGH:
+                                    # internal temp is higher than optimal
+                                    for ac in self.AIRCON:
+                                        self.ton(ac, "AC", mode="cool", temp=self.INTHIGH, spd="Mid")
+                                    for fan in self.FAN:
+                                        self.ton(fan, "FAN")
+                                else:
+                                    # internal temp is not high but
+                                    # external temp is high
+                                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                                        for ac in self.AIRCON:
+                                            self.ton(ac, "AC", mode="fan_only")
+                                        for fan in self.FAN:
+                                            self.ton(fan, "FAN")
+                                    else:
+                                        # external temp is ok, let it naturally cool
+                                        for ac in self.AIRCON:
+                                            self.toff(ac, "AC")
+                                        for fan in self.FAN:
+                                            self.toff(fan, "FAN") 
+
+                        elif self.get_state(self.FHIGHN) <= self.OPTLOW:
+                            # if the forecast is for low today, then we are heating
+                            # see if we have solar
+                            if self.get_state(self.SOLARN) == 'on':
+                                # solar is available - heat further
+                                if self.get_state(self.CINTEMPN) < self.OPTLOW:
+                                    # internal temp is higher than optimal
+                                    for ac in self.AIRCON:
+                                        self.ton(ac, "AC", mode="heat", temp=self.OPTLOW, spd="Low")
+                                    for fan in self.FAN:
+                                        self.toff(fan, "FAN")
+                                else:
+                                    # internal temp is fine
+                                    for ac in self.AIRCON:
+                                        self.toff(ac, "AC")
+                                    for fan in self.FAN:
+                                        self.toff(fan, "FAN")
+                            else:
+                                # solar is not available - some cooling
+                                if self.get_state(self.CINTEMPN) < self.INTLOW:
+                                    # internal temp is higher than optimal
+                                    for ac in self.AIRCON:
+                                        self.ton(ac, "AC", mode="heat", temp=self.INTLOW, spd="Mid")
+                                    for fan in self.FAN:
+                                        self.toff(fan, "FAN")
+                                else:
+                                    # internal temp is ok
                                     # external temp is ok, let it naturally cool
                                     for ac in self.AIRCON:
                                         self.toff(ac, "AC")
                                     for fan in self.FAN:
                                         self.toff(fan, "FAN")
                         else:
-                            # solar is not available - some cooling
-                            if self.get_state(self.CINTEMPN) > self.INTHIGH:
-                                # internal temp is higher than optimal
-                                for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="cool", temp=self.INTHIGH, spd="Mid")
-                                for fan in self.FAN:
-                                    self.ton(fan, "FAN")
-                            else:
-                                # internal temp is not high but
-                                # external temp is high
-                                if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
-                                    for ac in self.AIRCON:
-                                        self.ton(ac, "AC", mode="fan_only")
-                                    for fan in self.FAN:
-                                        self.ton(fan, "FAN")
-                                else:
-                                    # external temp is ok, let it naturally cool
-                                    for ac in self.AIRCON:
-                                        self.toff(ac, "AC")
-                                    for fan in self.FAN:
-                                        self.toff(fan, "FAN") 
+                            # if the forecast is in the middle then we do nothing? and let the house cool or heat naturally?
+                            pass
 
-                    elif self.get_state(self.FHIGHN) <= self.OPTLOW:
-                        # if the forecast is for low today, then we are heating
-                        # see if we have solar
-                        if self.get_state(self.SOLARN) == 'on':
-                            # solar is available - heat further
-                            if self.get_state(self.CINTEMPN) < self.OPTLOW:
-                                # internal temp is higher than optimal
-                                for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="heat", temp=self.OPTLOW, spd="Low")
-                                for fan in self.FAN:
-                                    self.toff(fan, "FAN")
-                            else:
-                                # internal temp is fine
-                                for ac in self.AIRCON:
-                                    self.toff(ac, "AC")
-                                for fan in self.FAN:
-                                    self.toff(fan, "FAN")
-                        else:
-                            # solar is not available - some cooling
-                            if self.get_state(self.CINTEMPN) < self.INTLOW:
-                                # internal temp is higher than optimal
-                                for ac in self.AIRCON:
-                                    self.ton(ac, "AC", mode="heat", temp=self.INTLOW, spd="Mid")
-                                for fan in self.FAN:
-                                    self.toff(fan, "FAN")
-                            else:
-                                # internal temp is ok
-                                # external temp is ok, let it naturally cool
-                                for ac in self.AIRCON:
-                                    self.toff(ac, "AC")
-                                for fan in self.FAN:
-                                    self.toff(fan, "FAN")
-                    else:
-                        # if the forecast is in the middle then we do nothing? and let the house cool or heat naturally?
-                        pass
-
-        self.log(logger)
+            self.log(logger)
 
 
 
@@ -354,6 +373,7 @@ class Manage_Climate(hass.Hass):
                     self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
                     self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
                     self.call_service("climate/turn_on", entity_id=unit)
+                    self.lightwarn()
                     self.log(unit + " on to " + mode)
             elif aftype == "FAN":
                 self.call_service("fan/turn_on", entity_id=unit)
@@ -363,7 +383,9 @@ class Manage_Climate(hass.Hass):
         else:
             self.log("already on - not turning on " + unit)
 
-        
+    
+    ## THIS WOULD NEED TO BE GENERICISED IF MADE AVAILABLE TO COMMUNITY
+
     def lightwarn(self):
         """ this will flash the front hall light if the doors are open when the aircon kicks in
         """
