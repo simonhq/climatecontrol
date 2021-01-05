@@ -170,25 +170,26 @@ class Manage_Climate(hass.Hass):
                         self.toff(fan, "FAN")
                 elif new > self.OPTLOW and new < self.INTHIGH:
                     # this is in the goldilocks range, mostly aim to control
-                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
-                        # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
-                        for ac in self.AIRCON:
-                            self.ton(ac, "AC", mode="fan_only")
-                        for fan in self.FAN:
-                            self.ton(fan, "FAN")
-                    else:
-                        # if the outside temp is lower than optimal but the forecast is higher (but we are in the goldilocks range)
-                        if self.get_state(self.FHIGHN) > self.OPTHIGH:
+                    if self.get_state(self.AWAYN) != 'on': 
+                        if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                            # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
                             for ac in self.AIRCON:
-                                self.toff(ac, "AC")
+                                self.ton(ac, "AC", mode="fan_only")
                             for fan in self.FAN:
                                 self.ton(fan, "FAN")
                         else:
-                            # everything is optimal - everything off
-                            for ac in self.AIRCON:
-                                self.toff(ac, "AC")
-                            for fan in self.FAN:
-                                self.toff(fan, "FAN")
+                            # if the outside temp is lower than optimal but the forecast is higher (but we are in the goldilocks range)
+                            if self.get_state(self.FHIGHN) > self.OPTHIGH:
+                                for ac in self.AIRCON:
+                                    self.toff(ac, "AC")
+                                for fan in self.FAN:
+                                    self.ton(fan, "FAN")
+                            else:
+                                # everything is optimal - everything off
+                                for ac in self.AIRCON:
+                                    self.toff(ac, "AC")
+                                for fan in self.FAN:
+                                    self.toff(fan, "FAN")
                 else:
                     # this is in the outer ranges, need to check more complexity
                     # is the house empty
@@ -373,7 +374,8 @@ class Manage_Climate(hass.Hass):
                     self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
                     self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
                     self.call_service("climate/turn_on", entity_id=unit)
-                    self.lightwarn()
+                    if self.get_state(mode) == 'fan_only':
+                        self.lightwarn()
                     self.log(unit + " on to " + mode)
             elif aftype == "FAN":
                 self.call_service("fan/turn_on", entity_id=unit)
