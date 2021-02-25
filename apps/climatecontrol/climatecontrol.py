@@ -169,6 +169,7 @@ class Manage_Climate(hass.Hass):
                     for fan in self.FAN:
                         self.toff(fan, "FAN")
                 elif new > self.OPTLOW and new < self.INTHIGH:
+                    self.log("goldilocks")
                     # this is in the goldilocks range, mostly aim to control
                     if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
                         # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
@@ -214,6 +215,7 @@ class Manage_Climate(hass.Hass):
                                 else:
                                     # internal temp is not high but
                                     # external temp is high
+                                    self.log("will be hot - solar")
                                     if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
                                         for ac in self.AIRCON:
                                             self.ton(ac, "AC", mode="fan_only")
@@ -234,13 +236,21 @@ class Manage_Climate(hass.Hass):
                                     for fan in self.FAN:
                                         self.ton(fan, "FAN")
                                 else:
-                                    # internal temp is not high but
-                                    # external temp is high
-                                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
-                                        for ac in self.AIRCON:
-                                            self.ton(ac, "AC", mode="fan_only")
-                                        for fan in self.FAN:
-                                            self.ton(fan, "FAN")
+                                    if self.get_state(self.CINTEMPN) > self.OPTLOW:
+                                        # internal temp is not high but
+                                        # external temp is high
+                                        self.log("will be hot - no solar | ext:" + self.get_state(self.CEXTEMPN) + " opth: " + self.OPTHIGH )
+                                        if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                                            for ac in self.AIRCON:
+                                                self.ton(ac, "AC", mode="fan_only")
+                                            for fan in self.FAN:
+                                                self.ton(fan, "FAN")
+                                        else:
+                                            # external temp is ok, let it naturally cool
+                                            for ac in self.AIRCON:
+                                                self.toff(ac, "AC")
+                                            for fan in self.FAN:
+                                                self.toff(fan, "FAN") 
                                     else:
                                         # external temp is ok, let it naturally cool
                                         for ac in self.AIRCON:
@@ -346,6 +356,8 @@ class Manage_Climate(hass.Hass):
     def ton(self, unit, aftype, mode="fan_only", temp="0.0", spd="Low"):
         """ this will turn on an ac or a fan if it isn't already on
         """
+
+        self.log("call to turn on - " + unit + " type: " + aftype + " mode: " + mode + " temp: " + temp + " spd: " + spd )
 
         #if already on, this will set from fan to cool/heat and from cool/heat back to fan
         if float(temp) > 0.0:
