@@ -171,7 +171,7 @@ class Manage_Climate(hass.Hass):
                 elif new > self.OPTLOW and new < self.INTHIGH:
                     self.log("goldilocks")
                     # this is in the goldilocks range, mostly aim to control
-                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                    if float(self.get_state(self.CEXTEMPN)) > float(self.OPTHIGH):
                         # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
                         for ac in self.AIRCON:
                             self.ton(ac, "AC", mode="fan_only")
@@ -179,7 +179,7 @@ class Manage_Climate(hass.Hass):
                             self.ton(fan, "FAN")
                     else:
                         # if the outside temp is lower than optimal but the forecast is higher (but we are in the goldilocks range)
-                        if self.get_state(self.FHIGHN) > self.OPTHIGH:
+                        if float(self.get_state(self.FHIGHN)) > float(self.OPTHIGH):
                             for ac in self.AIRCON:
                                 self.toff(ac, "AC")
                             for fan in self.FAN:
@@ -201,12 +201,12 @@ class Manage_Climate(hass.Hass):
                             self.toff(fan, "FAN")
                     else:
                         # people are home, so lets work out how to bring it back to optimal
-                        if self.get_state(self.FHIGHN) >= self.INTHIGH:
+                        if float(self.get_state(self.FHIGHN)) >= float(self.INTHIGH):
                             # if the forecast is for high today, then we are cooling
                             # see if we have solar
                             if self.get_state(self.SOLARN) == 'on':
                                 # solar is available - cool further
-                                if self.get_state(self.CINTEMPN) > self.OPTHIGH:
+                                if float(self.get_state(self.CINTEMPN)) > float(self.OPTHIGH):
                                     # internal temp is higher than optimal
                                     for ac in self.AIRCON:
                                         self.ton(ac, "AC", mode="cool", temp=self.OPTHIGH, spd="Low")
@@ -216,7 +216,7 @@ class Manage_Climate(hass.Hass):
                                     # internal temp is not high but
                                     # external temp is high
                                     self.log("will be hot - solar")
-                                    if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                                    if float(self.get_state(self.CEXTEMPN)) > float(self.OPTHIGH):
                                         for ac in self.AIRCON:
                                             self.ton(ac, "AC", mode="fan_only")
                                         for fan in self.FAN:
@@ -229,18 +229,18 @@ class Manage_Climate(hass.Hass):
                                             self.toff(fan, "FAN")
                             else:
                                 # solar is not available - some cooling
-                                if self.get_state(self.CINTEMPN) > self.INTHIGH:
+                                if float(self.get_state(self.CINTEMPN)) > float(self.INTHIGH):
                                     # internal temp is higher than optimal
                                     for ac in self.AIRCON:
                                         self.ton(ac, "AC", mode="cool", temp=self.INTHIGH, spd="Mid")
                                     for fan in self.FAN:
                                         self.ton(fan, "FAN")
                                 else:
-                                    if self.get_state(self.CINTEMPN) > self.OPTLOW:
+                                    if float(self.get_state(self.CINTEMPN)) > self.OPTLOW:
                                         # internal temp is not high but
                                         # external temp is high
-                                        self.log("will be hot - no solar | ext:" + self.get_state(self.CEXTEMPN) + " opth: " + self.OPTHIGH )
-                                        if self.get_state(self.CEXTEMPN) > self.OPTHIGH:
+                                        self.log("will be hot - no solar | ext:" + float(self.get_state(self.CEXTEMPN)) + " opth: " + float(self.OPTHIGH) )
+                                        if float(self.get_state(self.CEXTEMPN)) > float(self.OPTHIGH):
                                             for ac in self.AIRCON:
                                                 self.ton(ac, "AC", mode="fan_only")
                                             for fan in self.FAN:
@@ -263,7 +263,7 @@ class Manage_Climate(hass.Hass):
                             # see if we have solar
                             if self.get_state(self.SOLARN) == 'on':
                                 # solar is available - heat further
-                                if self.get_state(self.CINTEMPN) < self.OPTLOW:
+                                if float(self.get_state(self.CINTEMPN)) < float(self.OPTLOW):
                                     # internal temp is higher than optimal
                                     for ac in self.AIRCON:
                                         self.ton(ac, "AC", mode="heat", temp=self.OPTLOW, spd="Low")
@@ -277,7 +277,7 @@ class Manage_Climate(hass.Hass):
                                         self.toff(fan, "FAN")
                             else:
                                 # solar is not available - some cooling
-                                if self.get_state(self.CINTEMPN) < self.INTLOW:
+                                if float(self.get_state(self.CINTEMPN)) < float(self.INTLOW):
                                     # internal temp is higher than optimal
                                     for ac in self.AIRCON:
                                         self.ton(ac, "AC", mode="heat", temp=self.INTLOW, spd="Mid")
