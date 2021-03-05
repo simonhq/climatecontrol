@@ -286,7 +286,7 @@ class Manage_Climate(hass.Hass):
                                         for heater in self.HEATER:
                                             self.toff(heater, "HEATER")
 
-                        elif self.get_state(self.FHIGHN) <= float(self.OPTLOW):
+                        elif float(self.get_state(self.FHIGHN)) <= float(self.OPTLOW):
                             # if the forecast is for low today, then we are heating
                             # see if we have solar
                             if self.get_state(self.SOLARN) == 'on':
