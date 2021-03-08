@@ -404,7 +404,7 @@ class Manage_Climate(hass.Hass):
                     self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
                     self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
                     self.call_service("climate/turn_on", entity_id=unit)
-                    if self.get_state(mode) != 'fan_only':
+                    if mode != 'fan_only':
                         self.lightwarn()
                     self.log(unit + " on to " + mode)
             elif aftype == "FAN":
