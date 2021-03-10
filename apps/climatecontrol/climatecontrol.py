@@ -415,7 +415,7 @@ class Manage_Climate(hass.Hass):
             else:
                 self.log("unknown on call - off")
         #if already on, this will set from fan to cool/heat and from cool/heat back to fan
-        elif self.get_state(unit) == 'on' and float(temp) > 0.0:
+        else:
             if aftype == "AC":
                 #switch from fan_only to aircon
                 if self.get_state(unit) == 'fan_only' and mode != 'fan_only':
@@ -439,8 +439,8 @@ class Manage_Climate(hass.Hass):
                 self.log(unit + " at " + temp)
             else:
                 self.log("unknown on call - already on")
-        else:
-            self.log("already on - not turning on " + unit)
+        
+            
 
     
     ## THIS WOULD NEED TO BE GENERICISED IF MADE AVAILABLE TO COMMUNITY
