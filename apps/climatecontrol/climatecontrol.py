@@ -175,7 +175,7 @@ class Manage_Climate(hass.Hass):
                     for heater in self.HEATER:
                         self.ton(heater, "HEATER", mode="heat", temp=self.INTLOW)
                 elif float(new) > float(self.OPTLOW) and float(new) < float(self.INTHIGH):
-                    self.log("goldilocks")
+                    #self.log("goldilocks")
                     # this is in the goldilocks range, mostly aim to control
                     if float(self.get_state(self.CEXTEMPN)) > float(self.OPTHIGH):
                         # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
@@ -370,7 +370,7 @@ class Manage_Climate(hass.Hass):
                                 # if the forecast is in the middle then we do nothing? and let the house cool or heat naturally?
                                 pass
 
-            self.log(logger)
+            #self.log(logger)
 
 
 
@@ -436,51 +436,64 @@ class Manage_Climate(hass.Hass):
         """ this will turn on an ac or a fan if it isn't already on
         """
 
-        self.log("call to turn on - " + unit + " type: " + aftype + " mode: " + mode + " temp: " + temp + " spd: " + spd )
+        #don't run the small heaters during the night 9pm to 5am
+        hflag = False
+        if aftype == "HEATER":
+            #if between certain times - turn off rather than on
+            dnow = datetime.datetime.now()
+            #self.log(dnow.hour)
+            if dnow.hour >= 21 or dnow.hour < 5:
+                self.toff(unit, "HEATER")
+                hflag = True
 
-        if self.get_state(unit) == 'off':
-            if aftype == "AC":
-                    self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
-                    self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+        # if the flag hasn't been set in the above, then turn things on as normal
+        if hflag == False:
+
+            self.log("call to turn on - " + unit + " type: " + aftype + " mode: " + mode + " temp: " + temp + " spd: " + spd )
+
+            if self.get_state(unit) == 'off':
+                if aftype == "AC":
+                        self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
+                        self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+                        self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
+                        self.call_service("climate/turn_on", entity_id=unit)
+                        if mode != 'fan_only':
+                            self.lightwarn()
+                        self.log(unit + " on to " + mode)
+                elif aftype == "FAN":
+                    self.call_service("fan/turn_on", entity_id=unit)
+                    self.log(unit + " on")
+                elif aftype == "HEATER":
                     self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
-                    self.call_service("climate/turn_on", entity_id=unit)
-                    if mode != 'fan_only':
+                else:
+                    self.log("unknown on call - off")
+            #if already on, this will set from fan to cool/heat and from cool/heat back to fan
+            else:
+                if aftype == "AC":
+                    #switch from fan_only to aircon
+                    if self.get_state(unit) == 'fan_only' and mode != 'fan_only':
+                        self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
+                        self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+                        self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
                         self.lightwarn()
-                    self.log(unit + " on to " + mode)
-            elif aftype == "FAN":
-                self.call_service("fan/turn_on", entity_id=unit)
-                self.log(unit + " on")
-            elif aftype == "HEATER":
-                self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
-            else:
-                self.log("unknown on call - off")
-        #if already on, this will set from fan to cool/heat and from cool/heat back to fan
-        else:
-            if aftype == "AC":
-                #switch from fan_only to aircon
-                if self.get_state(unit) == 'fan_only' and mode != 'fan_only':
-                    self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
-                    self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+                        self.log(unit + " on to " + mode + " at " + temp)
+                    #switch from aircon to fan_only 
+                    elif mode == 'fan_only' and self.get_state(unit) != 'fan_only':
+                        self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
+                        self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
+                        self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
+                        self.log(unit + " on to " + mode)
+                    #switch temperatures when using aircon
+                    elif self.get_state(unit) != 'fan_only' and self.get_state(unit, attribute='temperature') != temp:
+                        self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
+                        self.log(unit + " on to " + mode + " at " + temp)
+                elif aftype == "HEATER":
                     self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
-                    self.lightwarn()
-                    self.log(unit + " on to " + mode + " at " + temp)
-                #switch from aircon to fan_only 
-                elif mode == 'fan_only' and self.get_state(unit) != 'fan_only':
-                    self.call_service("climate/set_hvac_mode", entity_id=unit, hvac_mode=mode)
-                    self.call_service("climate/set_fan_mode", entity_id=unit, fan_mode=spd)
-                    self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
-                    self.log(unit + " on to " + mode)
-                #switch temperatures when using aircon
-                elif self.get_state(unit) != 'fan_only' and self.get_state(unit, attribute='temperature') != temp:
-                    self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
-                    self.log(unit + " on to " + mode + " at " + temp)
-            elif aftype == "HEATER":
-                self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
-                self.log(unit + " at " + temp)
-            elif aftype == "FAN":
-                self.log(unit + " already on")
-            else:
-                self.log("unknown on call - already on")
+                    self.log(unit + " at " + temp)
+                elif aftype == "FAN":
+                    self.log(unit + " already on")
+                else:
+                    self.log("unknown on call - already on")
         
             
 
