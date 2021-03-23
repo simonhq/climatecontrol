@@ -449,7 +449,7 @@ class Manage_Climate(hass.Hass):
         # if the flag hasn't been set in the above, then turn things on as normal
         if hflag == False:
 
-            self.log("call to turn on - " + unit + " type: " + aftype + " mode: " + mode + " temp: " + temp + " spd: " + spd )
+            #self.log("call to turn on - " + unit + " type: " + aftype + " mode: " + mode + " temp: " + temp + " spd: " + spd )
 
             if self.get_state(unit) == 'off':
                 if aftype == "AC":
