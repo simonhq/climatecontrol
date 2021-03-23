@@ -442,7 +442,7 @@ class Manage_Climate(hass.Hass):
             #if between certain times - turn off rather than on
             dnow = datetime.datetime.now()
             #self.log(dnow.hour)
-            if dnow.hour >= 21 or dnow.hour < 5:
+            if dnow.hour >= 21 or dnow.hour <= 5:
                 self.toff(unit, "HEATER")
                 hflag = True
 
