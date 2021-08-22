@@ -135,9 +135,23 @@ class Manage_Climate(hass.Hass):
         if new == 'on':
             self.log("Manual Mode: ignoring temperature controls")
             self.setrule("Manual")
+            # turn everything off so that it can be manually set
+            for ac in self.AIRCON:
+                self.toff(ac, "AC")
+            for fan in self.FAN:
+                self.toff(fan, "FAN")
+            for heater in self.HEATER:
+                self.toff(heater, "HEATER")
         else:
             self.log("Controlled Mode: managing temperature controls")
             self.setrule("Initialising")
+            # toggle the away flag so that it rechecks and takes over the climate control
+            if self.get_state(self.AWAYN) == 'on':
+                self.turn_off(self.AWAYN)
+                self.turn_on(self.AWAYN)
+            else:
+                self.turn_on(self.AWAYN)
+                self.turn_off(self.AWAYN)
 
 
 
