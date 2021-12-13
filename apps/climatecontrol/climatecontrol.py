@@ -44,7 +44,7 @@ import datetime
 #import json
 import appdaemon.plugins.hass.hassapi as hass
 
-class Manage_Climate(hass.Hass):
+class Manage_Climate(hass.Hass): 
 
     # the name of the flags in HA to use
     
@@ -254,6 +254,14 @@ class Manage_Climate(hass.Hass):
                                         self.toff(fan, "FAN")
                                     for heater in self.HEATER:
                                         self.ton(heater, "HEATER", mode="heat", temp=self.OPTLOW)
+                                elif float(self.get_state(self.CINTEMPN)) > float(self.OPTHIGH):
+                                    self.setrule("Cooling to Optimum High (>2pm)")
+                                    for ac in self.AIRCON:
+                                        self.ton(ac, "AC", mode="cool", temp=self.OPTLOW, spd="Low")
+                                    for fan in self.FAN:
+                                        self.ton(fan, "FAN")
+                                    for heater in self.HEATER:
+                                        self.toff(heater, "HEATER")
                                 else:
                                     # internal temp is fine, keep the little heaters on
                                     self.setrule("Solar - Small Heaters to Optimal")
@@ -274,6 +282,14 @@ class Manage_Climate(hass.Hass):
                                         self.toff(fan, "FAN")
                                     for heater in self.HEATER:
                                         self.ton(heater, "HEATER", mode="heat", temp=self.INTLOW)
+                                elif float(self.get_state(self.CINTEMPN)) > float(self.INTHIGH):
+                                    self.setrule("Cooling to Internal High (>2pm)")
+                                    for ac in self.AIRCON:
+                                        self.ton(ac, "AC", mode="cool", temp=self.OPTHIGH, spd="Low")
+                                    for fan in self.FAN:
+                                        self.ton(fan, "FAN")
+                                    for heater in self.HEATER:
+                                        self.toff(heater, "HEATER")
                                 else:
                                     # internal temp is ok
                                     self.setrule("Internal Good - All Off")
