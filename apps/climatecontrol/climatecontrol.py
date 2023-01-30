@@ -92,9 +92,15 @@ class Manage_Climate(hass.Hass):
         self.CEXTEMPN = self.args["cexttemp"]
         self.CINTEMPN = self.args["cinttemp"]
         self.SOLARN = self.args["solarstatus"]
-        self.AWAYN = self.args["presenceaway"]
+        
         self.MANUAL = self.args["manual_override"]
         
+
+        if self.args["presenceaway"] != 'home' or self.args["presenceaway"] != 'off':
+            self.AWAYN = 'on'
+        else:
+            self.AWAYN = 'off'
+
         self.EXTHIGHN = self.args["exthigh"]
         self.INTHIGHN = self.args["inthigh"]
         self.OPTHIGHN = self.args["opthigh"]
