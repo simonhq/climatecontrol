@@ -531,7 +531,7 @@ class Manage_Climate(hass.Hass):
                             self.lightwarn()
                         self.log(unit + " on to " + mode)
                 elif aftype == "FAN":
-                    self.call_service("fan/turn_on", entity_id=unit)
+                    self.call_service("fan/increase_speed", entity_id=unit)
                     #self.log(unit + " on")
                 elif aftype == "HEATER":
                     self.call_service("climate/set_temperature", entity_id=unit, temperature=temp)
