@@ -255,13 +255,13 @@ class Manage_Climate(hass.Hass):
                                     # internal temp is lower than optimal
                                     self.setrule("Solar - Heating to Optimal")
                                     for ac in self.AIRCON:
-                                        self.ton(ac, "AC", mode="heat", temp=self.OPTLOW, spd="Low")
+                                        self.ton(ac, "AC", mode="heat", temp=self.OPTHIGH, spd="Low")
                                     for fan in self.FAN:
                                         self.toff(fan, "FAN")
                                     for heater in self.HEATER:
-                                        self.ton(heater, "HEATER", mode="heat", temp=self.OPTLOW)
+                                        self.ton(heater, "HEATER", mode="heat", temp=self.OPTHIGH)
                                 elif float(self.get_state(self.CINTEMPN)) > float(self.OPTHIGH):
-                                    self.setrule("Cooling to Optimum High (>2pm)")
+                                    self.setrule("Cooling to Optimum Low (>2pm)")
                                     for ac in self.AIRCON:
                                         self.ton(ac, "AC", mode="cool", temp=self.OPTLOW, spd="Low")
                                     for fan in self.FAN:
@@ -291,7 +291,7 @@ class Manage_Climate(hass.Hass):
                                 elif float(self.get_state(self.CINTEMPN)) > float(self.INTHIGH):
                                     self.setrule("Cooling to Internal High (>2pm)")
                                     for ac in self.AIRCON:
-                                        self.ton(ac, "AC", mode="cool", temp=self.OPTHIGH, spd="Low")
+                                        self.ton(ac, "AC", mode="cool", temp=self.INTHIGH, spd="Low")
                                     for fan in self.FAN:
                                         self.ton(fan, "FAN")
                                     for heater in self.HEATER:
