@@ -209,7 +209,8 @@ class Manage_Climate(hass.Hass):
                         # if the outside temperature is higher than the optimal high (but we are in the goldilocks range)
                         self.setrule("Goldilocks (Hot out) - AC Fans")
                         for ac in self.AIRCON:
-                            self.ton(ac, "AC", mode="fan_only")
+                            #self.ton(ac, "AC", mode="fan_only")
+                            self.toff(ac, "AC")
                         for fan in self.FAN:
                             self.ton(fan, "FAN")
                         for heater in self.HEATER:
@@ -328,7 +329,8 @@ class Manage_Climate(hass.Hass):
                                         if float(self.get_state(self.CEXTEMPN)) > float(self.OPTHIGH):
                                             self.setrule("Solar - Fans (Forecast Hot)")
                                             for ac in self.AIRCON:
-                                                self.ton(ac, "AC", mode="fan_only")
+                                                self.toff(ac, "AC")
+                                                #self.ton(ac, "AC", mode="fan_only")
                                             for fan in self.FAN:
                                                 self.ton(fan, "FAN")
                                             for heater in self.HEATER:
@@ -361,7 +363,8 @@ class Manage_Climate(hass.Hass):
                                             if float(self.get_state(self.CEXTEMPN)) > float(self.OPTHIGH):
                                                 self.setrule("Fans (is hot out)")
                                                 for ac in self.AIRCON:
-                                                    self.ton(ac, "AC", mode="fan_only")
+                                                    self.toff(ac, "AC")
+                                                    #self.ton(ac, "AC", mode="fan_only")
                                                 for fan in self.FAN:
                                                     self.ton(fan, "FAN")
                                                 for heater in self.HEATER:
